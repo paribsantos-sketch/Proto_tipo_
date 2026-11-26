@@ -549,79 +549,32 @@ function pbDays(line){const t=pbNorm(line);if(/(?:todos? os dias|todo dia|diaria
 function pbClock(raw){const m=String(raw||'').match(/^(\d{1,2})(?:\s*[:h]\s*(\d{1,2})|\s*h)?\s*(?:horas?)?$/i);if(!m)return null;const h=+m[1],min=+(m[2]||0);return h<24&&min<60?h*60+min:null}
 function pbSegments(raw){return String(raw||'').replace(/\r/g,'\n').split(/\n|[;.!?]+|,\s*(?=(?:de |das |a partir|segunda|terca|terça|quarta|quinta|sexta|sabado|sábado|domingo|faculdade|trabalho|academia|estudo|aula|onibus|ônibus|consulta))/i).map(x=>x.trim()).filter(Boolean)}
 function pbParseNarrative(raw){
- const text=String(raw||'').replace(/\s+/g,' ').trim(),normalized=pbNorm(text),items=[],unread=[];
- if(!text)return {items:[],unread:['Descreva os dias e os horários da sua rotina.']};
- const scopes=[...normalized.matchAll(/\b(?:de segunda a sexta|segunda a sexta|de segunda a domingo|segunda a domingo|aos? sabados?|nos? sabados?|aos? domingos?|nos? domingos?|sabados?|domingos?|de segunda a sabado|segunda|terca|quarta|quinta|sexta|todos os dias)\b/g)].map(m=>({pos:m.index,days:pbDays(m[0])})).filter(x=>x.days.length);
- // Context persists across sentences, but a new day phrase changes it immediately.
- const daysAt=pos=>{let d=null;for(const scope of scopes){if(scope.pos<=pos)d=scope.days;else break}return d||[0,1,2,3,4,5,6]};
- const events=[
-  [/\b(?:acordo|acordar|acorda|levanto|levantar)\b/g,'Acordar','point'],
-  [/\b(?:tomo banho|tomar banho|banho)\b/g,'Banho','point'],
-  [/\b(?:tomo cafe|tomar cafe|cafe da manha)\b/g,'Café da manhã','point'],
-  [/\b(?:me arrumo|me preparar|me preparo)\b/g,'Preparação','point'],
-  [/\b(?:saio de casa|sair de casa|vou para|vou pra|vou ao|vou a)\b/g,'Saída','point'],
-  [/\b(?:comeco a trabalhar|comeco o trabalho|trabalho|trabalhar|expediente|termino o trabalho)\b/g,'Trabalho','work'],
-  [/\b(?:horario de almoco|almoco|almocar)\b/g,'Almoço','meal'],
-  [/\b(?:janto|jantar|janta)\b/g,'Jantar','point'],
-  [/\b(?:chego em casa|chegar em casa|volto para casa)\b/g,'Chegar em casa','point'],
-  [/\b(?:descanso|descansar|descansando)\b/g,'Descanso','point'],
-  [/\b(?:fico mexendo|mexendo no celular|jogar|assistir)\b/g,'Lazer','point'],
-  [/\b(?:durmo|dormir|vou dormir|deito|deitar)\b/g,'Dormir','sleep'],
-  [/\b(?:tarefas domesticas|limpar a casa|arrumar a casa)\b/g,'Tarefas domésticas','range'],
-  [/\b(?:faculdade|universidade)\b/g,'Faculdade','range'],
-  [/\b(?:escola|colegio)\b/g,'Escola','range'],
-  [/\b(?:academia|treino|exercicios)\b/g,'Academia','range'],
-  [/\b(?:consulta|medico|dentista)\b/g,'Consulta médica','range'],
-  [/\b(?:mercado|supermercado|compras)\b/g,'Compras','range'],
-  [/\b(?:estudo|estudar)\b/g,'Estudar','range']
- ];
- let matches=[];for(const [re,title,kind] of events){for(const m of normalized.matchAll(re))matches.push({at:m.index,end:m.index+m[0].length,title,kind})}
- matches.sort((a,b)=>a.at-b.at||b.end-a.end);
- matches=matches.filter((x,i)=>!matches.some((y,j)=>j!==i&&y.at<=x.at&&y.end>=x.end&&(y.end-y.at>x.end-x.at)));
- const timeRe=/\b(?:([01]?\d|2[0-3])\s*(?:h|:)\s*([0-5]?\d)?|([01]?\d|2[0-3])\s*horas?)\b/g;
- const times=[...normalized.matchAll(timeRe)].map(m=>({at:m.index,end:m.index+m[0].length,minute:Number(m[1]??m[3])*60+Number(m[2]||0)}));
- function emit(title,start,end,point,days){if(start<0||start>=1440||end>1440||end<start)return;for(const day of days)items.push({title,start,end,point,fixed:true,days:[day]})}
- // Group each action with its own adjacent time. Never borrow a time from another action.
- for(let i=0;i<matches.length;i++){
-  const ev=matches[i],next=matches[i+1],limit=next?next.at:normalized.length;
-  let fragment=normalized.slice(ev.end,limit);
-  // A sentence boundary ends an event's context, except a comma connecting clauses.
-  const stop=fragment.search(/[.!?;]/);if(stop>=0)fragment=fragment.slice(0,stop);
-  const localTimes=times.filter(t=>t.at>=ev.end&&t.at<ev.end+fragment.length);
-  let before=times.filter(t=>t.end<=ev.at&&ev.at-t.end<22).pop();
-  const first=localTimes[0]||((ev.kind==='work'||ev.kind==='range')?before:null);
-  if(!first)continue;
-  let title=ev.title;
-  if(title==='Saída'){
-   const dest=normalized.slice(ev.end,Math.min(limit,ev.end+55));
-   const d=dest.match(/\b(escola|colegio|faculdade|universidade|trabalho|academia|mercado|supermercado|medico|dentista)\b/);
-   title=d?({'escola':'Escola','colegio':'Escola','faculdade':'Faculdade','universidade':'Faculdade','trabalho':'Trabalho','academia':'Academia','mercado':'Compras','supermercado':'Compras','medico':'Consulta médica','dentista':'Consulta médica'}[d[1]]):(/\b(?:trabalhar|trabalho)\b/.test(normalized.slice(ev.end,ev.end+100))?'Ir ao trabalho':'Saída');
-  }
-  let end=first.minute,point=true;
-  if(localTimes.length>1){const second=localTimes[1],between=normalized.slice(first.end,second.at);if(/^\s*(?:as|a|ate|e|[-–])\s*$/.test(between)&&second.minute>first.minute){end=second.minute;point=false}}
-  if(ev.kind==='work'&&/termino|termina/.test(normalized.slice(ev.at,ev.end))){
-   // Closing marker: the previous work start is closed later, after all events are collected.
-   emit('Fim do trabalho',first.minute,first.minute,true,daysAt(ev.at));continue;
-  }
-  if(ev.kind==='work'&&/comeco|começa/.test(normalized.slice(ev.at,ev.end))){title='Trabalho'}
-  if(ev.kind==='meal'&&point){unread.push('Confirme a duração do almoço às '+fmt(first.minute)+'.')}
-  if(ev.kind==='range'&&point)unread.push('Confirme o término de '+title+' às '+fmt(first.minute)+'.');
-  emit(title,first.minute,end,point,daysAt(ev.at));
+ const text=pbNorm(raw).replace(/(acordo)\s+as\s+(\d{1,2}:\d{2})\s+me arrumo\s+ate\s+as\s+(\d{1,2}:\d{2})/g,"$1 e me arrumo das $2 ate as $3"),items=[],unread=[]; let days=[0,1,2,3,4,5,6],cursor=0,scope=0;
+ const dayRe=/\b(?:(?:de |aos? |nas? |nos? )?(?:segunda|terca|quarta|quinta|sexta|sabado|domingo)(?:-feira)?(?:\s+(?:a|ate|e)\s+(?:segunda|terca|quarta|quinta|sexta|sabado|domingo)(?:-feira)?)?|todos os dias|diariamente|dias uteis)\b/g;
+ const scopes=[...text.matchAll(dayRe)];
+ const clock='(?:[01]?\\d|2[0-3])(?:\\s*[:h]\\s*[0-5]\\d|\\s*h(?:oras?)?)';
+ const re=new RegExp('('+clock+')(?:\\s*(?:ate(?:\\s+as)?|as|a|[-–])\\s*('+clock+'))?','g');
+ const mins=x=>{const m=x.match(/(\d+)(?:\s*[:h]\s*(\d+))?/);return +m[1]*60+ +(m[2]||0)};
+ for(const m of text.matchAll(re)){
+ let label=text.slice(cursor,m.index);for(const d of scopes.filter(d=>d.index>=cursor&&d.index<m.index)){days=pbDays(d[0]);scope++;label=text.slice(d.index+d[0].length,m.index)}
+ label=label.replace(/^[\s,.;]+|\b(?:eu|tenho|quero)\b/g,' ').replace(/\s+(?:das|as|de|a partir das)\s*$/,'').replace(/^\s*(?:e\s+)?/,'').trim();
+ const start=mins(m[1]),end=m[2]?mins(m[2]):start;cursor=m.index+m[0].length;
+ if(!label){const prev=items.filter(x=>x.scope===scope&&x.end===start);if(prev.length)continue;unread.push('Atividade não identificada às '+fmt(start));continue}
+ const titles=[[/acordo.*me arrumo/,'Acordar e se arrumar'],[/^acordo$/,'Acordar'],[/cachorr|passe.*cao/,'Passear com a cachorrinha'],[/arrum.*casa|limp.*casa/,'Arrumar a casa'],[/arrum.*escola/,'Se arrumar para a escola'],[/programacao/,'Estudar programação'],[/^estud[oa]r?$/,'Estudar'],[/curso/,'Curso'],[/escola/,'Escola']];
+ const title=titles.find(x=>x[0].test(label))?.[1]||label.charAt(0).toUpperCase()+label.slice(1);
+ if(end<start){unread.push('Confirme o horário de '+title);continue}for(const day of days)items.push({title,start,end,point:!m[2],fixed:true,days:[day],scope,priority:7-days.length});
  }
- // Close work blocks using the stated lunch interval and end-of-work marker.
- for(let day=0;day<7;day++){
-  let arr=items.filter(x=>x.days[0]===day).sort((a,b)=>a.start-b.start),work=arr.filter(x=>x.title==='Trabalho'),finish=arr.find(x=>x.title==='Fim do trabalho'),lunch=arr.find(x=>x.title==='Almoço');
-  if(work.length&&finish){for(const w of work){if(w.point&&w.start<finish.start){w.end=finish.start;w.point=false}}}
-  if(lunch&&!lunch.point){for(const w of work){if(w.start<lunch.start&&w.end>lunch.start){const end=w.end;w.end=lunch.start;items.push({title:'Trabalho',start:lunch.end,end,point:false,fixed:true,days:[day]})}}}
- }
- const unique=new Map();for(const x of items){if(x.title==='Fim do trabalho')continue;unique.set([x.days[0],x.title,x.start,x.end].join('|'),x)}
- const result=[...unique.values()];if(!result.length)unread.push('Não encontrei horários suficientes. Exemplo: trabalho das 8h às 17h.');
+ // Later, narrower day commitments override conflicting general blocks.
+ const result=[];for(let day=0;day<7;day++){const accepted=[];for(const x of items.filter(x=>x.days[0]===day).sort((a,b)=>b.priority-a.priority||b.scope-a.scope||a.start-b.start)){if(accepted.some(y=>!y.point&&!x.point&&x.start<y.end&&x.end>y.start)){unread.push(dayNamesLocal(day)+': '+x.title+' precisa ser realocada devido a outro compromisso.');continue}accepted.push(x)}result.push(...accepted)}
  return {items:result,unread:[...new Set(unread)]};
 }
+function dayNamesLocal(d){return ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][d]}
 function parseFixed(raw){return pbParseNarrative(raw).items}
 function parseItems(raw){
  const t=pbNorm(raw),out=[];if(!t||/^\s*(?:nenhum|nenhuma|nada|nao)\b/.test(t))return out;
  const defs=[
+  {title:'Violão',re:/\b(?:violao)\b/,dur:/\b(\d+)\s*minutos?/,fallback:30,days:[0,6]},
+  {title:'Devocionário',re:/\b(?:devocionario|devocional)\b/,dur:/\b(\d+)\s*minutos?/,fallback:15,days:[0,1,2,3,4,5,6]},
   {title:'Inglês',re:/\b(?:ingles)\b/,dur:/\b(\d+)\s*minutos?/,fallback:40,frequency:3},
   {title:'Exercícios',re:/\b(?:exercicios fisicos|exercicios|academia|treino)\b/,dur:/\b(?:uma|1)\s*hora/,fallback:60,days:[1,3,5]},
   {title:'Leitura',re:/\b(?:ler um livro|ler|leitura|livro)\b/,dur:/\b(\d+)\s*minutos?/,fallback:30,days:[0,1,2,3,4,5,6]},
