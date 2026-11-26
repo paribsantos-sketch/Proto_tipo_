@@ -350,7 +350,7 @@ function renderBuddyTour(){
 function moveBuddyTour(dir){buddyTourIndex+=dir;if(buddyTourIndex<0)buddyTourIndex=0;if(buddyTourIndex>=buddyTourSteps.length){skipBuddyTour();return}renderBuddyTour()}
 function skipBuddyTour(){document.getElementById('buddyTour').classList.remove('show');document.getElementById('buddyStart').style.display='block';document.getElementById('buddyStart').textContent='✨ Rever apresentação'}
 window.addEventListener('resize',()=>{if(document.getElementById('buddyTour').classList.contains('show'))renderBuddyTour()});
-window.addEventListener('load',()=>{setTimeout(startBuddyTour,650)});
+// Automatic onboarding is controlled exclusively by the account flow below.
 </script>
 <style>
 @media (max-width: 700px) { #buddyStart { display: none !important; } }
