@@ -1522,4 +1522,41 @@ setInterval(sync,350);sync();
 }
 </style>
 <!-- /pb-cap-scene-fit-v2 -->
+<!-- pb-cap-scene-fit-v3 -->
+<style id="pb-cap-scene-fit-v3">
+@media(max-width:800px){
+  /* O mesmo arquivo de imagem cobre toda a parede, sem faixas artificiais */
+  #pomodoro .pb-room[data-pb-cap-test="1"]{
+    isolation:isolate!important;
+    background-color:#fbd2ad!important;
+    background-image:var(--room-mobile,var(--room))!important;
+    background-size:100% 100%!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+  }
+  #pomodoro .pb-room[data-pb-cap-test="1"]::before{
+    background-color:transparent!important;
+    background-image:none!important;
+    opacity:0!important;
+    display:none!important;
+  }
+  /* Eliminar camadas de névoa e centralizar a arte sobre o tapete */
+  #pomodoro .pb-room[data-pb-cap-test="1"]::after{opacity:0!important;background:none!important;pointer-events:none!important}
+  #pomodoro .pb-room[data-pb-cap-test="1"] .pb-room-art{filter:none!important}
+  /* Reduzir a arte do personagem e colocá-la sobre o tapete */
+  #pomodoro .pb-room[data-pb-cap-test="1"] .pb-room-art{
+    width:min(69%,300px)!important;
+    max-width:300px!important;
+    height:100%!important;
+    max-height:100%!important;
+    object-fit:contain!important;
+    object-position:center bottom!important;
+    justify-self:center!important;
+    align-self:end!important;
+    transform:translate(0,-10%)!important;
+    transform-origin:center bottom!important;
+  }
+}
+</style>
+<!-- /pb-cap-scene-fit-v3 -->
 </body></html>
