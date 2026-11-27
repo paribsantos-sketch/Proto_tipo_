@@ -1,0 +1,68 @@
+name: Aplicar fundo responsivo da capivara
+on:
+  push:
+    paths:
+      - '.github/workflows/aplicar-fundo-capivara.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Ajustar fundo responsivo sem alterar os outros mascotes
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='pb-capivara-mobile-desktop-test'
+          if marker not in s:
+              css = """<style id="pb-capivara-mobile-desktop-test">
+          @media (min-width: 801px) {
+            :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"]::before {
+              background-image: var(--room) !important;
+              background-size: cover !important;
+              background-position: center bottom !important;
+            }
+          }
+          @media (max-width: 800px) {
+            :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"]::before {
+              background-image: var(--room-mobile,var(--room)) !important;
+              background-size: cover !important;
+              background-position: center bottom !important;
+              background-repeat: no-repeat !important;
+            }
+            :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"] {
+              background-color: #ffdab7 !important;
+              overflow: hidden !important;
+            }
+            :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"] .pb-room-art {
+              object-fit: contain !important;
+              object-position: center bottom !important;
+            }
+          }
+          </style>"""
+              if '</body></html>' in s:
+                  s=s.replace('</body></html>',css+'</body></html>',1)
+              elif '</body>' in s:
+                  s=s.replace('</body>',css+'</body>',1)
+              else:
+                  raise RuntimeError('Fim do HTML não encontrado; nenhuma alteração aplicada')
+          # Marcar o cenário quando o script atual selecionar a capivara.
+          old="const back=B[p][k]||B[p].estudar;"
+          if old in s and "r.room.dataset.pbCapTest=p==='capivara'?'1':'0';" not in s:
+              s=s.replace(old,old+"r.room.dataset.pbCapTest=p==='capivara'?'1':'0';",1)
+          else:
+              raise RuntimeError('Seletor de cenário inesperado ou atualização já aplicada')
+          p.write_text(s,encoding='utf-8')
+      - name: Publicar atualização
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Ajustar cenário da capivara para celular e desktop"
+          git push
