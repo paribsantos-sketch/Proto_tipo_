@@ -1,0 +1,30 @@
+name: Diagnosticar layout foco mobile
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnosticar-foco.yml'
+permissions:
+  contents: write
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: python
+        run: |
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text(encoding='utf-8')
+          terms=['pb-room','pb-room-art','pb-focus','pb-capivara-mobile-desktop-test','--room-mobile','pb-focus-stage','focus-stage','pb-room-shell']
+          out=[]
+          for term in terms:
+            matches=list(re.finditer(re.escape(term),s,re.I))
+            out.append('### '+term+' count='+str(len(matches)))
+            for m in matches[:14]:
+              out.append(s[max(0,m.start()-230):min(len(s),m.end()+320)].replace('\n',' '))
+          Path('focus-layout-diagnostic.txt').write_text('\n'.join(out),encoding='utf-8')
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add focus-layout-diagnostic.txt
+          git commit -m "Diagnosticar CSS da tela Foco" && git push
