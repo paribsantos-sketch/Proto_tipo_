@@ -1438,4 +1438,29 @@ setInterval(sync,350);sync();
     object-position:center bottom!important;
   }
 }
+</style><style id="pb-cap-full-image-mobile-v4-20261127">
+@media(max-width:800px){
+  /* A imagem mobile inteira ocupa o cenário: nenhuma faixa pintada. */
+  #pomodoro .pb-room[data-pb-cap-test="1"],
+  #games .pb-room[data-pb-cap-test="1"]{
+    background-color:#FED6B2!important;
+    background-image:var(--room-mobile,var(--room))!important;
+    background-size:100% 100%!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+    isolation:isolate!important;
+  }
+  #pomodoro .pb-room[data-pb-cap-test="1"]::before,
+  #games .pb-room[data-pb-cap-test="1"]::before,
+  #pomodoro .pb-room[data-pb-cap-test="1"]::after,
+  #games .pb-room[data-pb-cap-test="1"]::after{
+    display:none!important;
+    content:none!important;
+  }
+  #pomodoro .pb-room[data-pb-cap-test="1"] > *,
+  #games .pb-room[data-pb-cap-test="1"] > *{
+    position:relative!important;
+    z-index:1!important;
+  }
+}
 </style></body></html>
