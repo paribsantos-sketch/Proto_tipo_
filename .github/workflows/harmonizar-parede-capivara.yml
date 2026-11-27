@@ -16,14 +16,14 @@ jobs:
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          marker='pb-cap-wall-tone-v2-20261127'
+          marker='pb-cap-wall-tone-v3-fed6b2-20261127'
           if marker not in s:
-            css='''<style id="pb-cap-wall-tone-v2-20261127">
+            css='''<style id="pb-cap-wall-tone-v3-fed6b2-20261127">
           @media(max-width:800px){
-            /* A parede ilustrada e #fcdbb8; eliminar a faixa superior mais clara */
+            /* A parede ilustrada e #FED6B2; eliminar a faixa superior mais clara */
             #pomodoro .pb-room[data-pb-cap-test="1"],
             #games .pb-room[data-pb-cap-test="1"]{
-              background-color:#fcdbb8!important;
+              background-color:#FED6B2!important;
             }
             #pomodoro .pb-room[data-pb-cap-test="1"]::after,
             #games .pb-room[data-pb-cap-test="1"]::after{
@@ -31,7 +31,7 @@ jobs:
               position:absolute!important;
               top:0!important;left:0!important;right:0!important;
               height:clamp(125px,17dvh,215px)!important;
-              background:linear-gradient(to bottom,#fcdbb8 0%,#fcdbb8 56%,rgba(252,219,184,.75) 78%,rgba(252,219,184,0) 100%)!important;
+              background:linear-gradient(to bottom,#FED6B2 0%,#FED6B2 56%,rgba(254,214,178,.75) 78%,rgba(254,214,178,0) 100%)!important;
               pointer-events:none!important;
               z-index:0!important;
             }
@@ -63,5 +63,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Uniformizar cor da parede da capivara nos quatro modos mobile"
+          git commit -m "Aplicar cor FED6B2 a parede capivara mobile"
           git push
