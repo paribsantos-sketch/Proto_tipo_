@@ -1,0 +1,70 @@
+name: Ajustar encaixe do fundo e personagem capivara
+on:
+  push:
+    paths:
+      - '.github/workflows/encaixar-cena-capivara.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  corrigir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ajustar CSS responsivo sem afetar desktop
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          start='<!-- pb-cap-scene-fit-v2 -->'
+          end='<!-- /pb-cap-scene-fit-v2 -->'
+          if start in s:
+            a=s.index(start); b=s.index(end,a)+len(end)
+            s=s[:a]+s[b:]
+          block='''<!-- pb-cap-scene-fit-v2 -->
+          <style id="pb-cap-scene-fit-v2">
+          @media(max-width:800px){
+            /* O mesmo arquivo de imagem cobre toda a parede, sem faixas artificiais */
+            #pomodoro .pb-room[data-pb-cap-test="1"]{
+              isolation:isolate!important;
+              background-color:#fbd2ad!important;
+              background-image:var(--room-mobile,var(--room))!important;
+              background-size:100% 100%!important;
+              background-position:center center!important;
+              background-repeat:no-repeat!important;
+            }
+            #pomodoro .pb-room[data-pb-cap-test="1"]::before{
+              background-color:transparent!important;
+              background-image:none!important;
+              opacity:0!important;
+              display:none!important;
+            }
+            /* Reduzir a arte do personagem e colocá-la sobre o tapete */
+            #pomodoro .pb-room[data-pb-cap-test="1"] .pb-room-art{
+              width:min(76%,330px)!important;
+              max-width:330px!important;
+              height:100%!important;
+              max-height:100%!important;
+              object-fit:contain!important;
+              object-position:center bottom!important;
+              justify-self:center!important;
+              align-self:end!important;
+              transform:translateY(-5%)!important;
+              transform-origin:center bottom!important;
+            }
+          }
+          </style>
+          <!-- /pb-cap-scene-fit-v2 -->'''
+          assert '</body>' in s
+          s=s.replace('</body>',block+'\n</body>',1)
+          p.write_text(s,encoding='utf-8')
+      - name: Enviar correção ao repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Corrigir faixa superior e proporção da capivara no celular"
+            git push
+          fi
