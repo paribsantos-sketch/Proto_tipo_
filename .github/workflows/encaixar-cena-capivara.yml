@@ -17,13 +17,13 @@ jobs:
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          start='<!-- pb-cap-scene-fit-v2 -->'
-          end='<!-- /pb-cap-scene-fit-v2 -->'
+          start='<!-- pb-cap-scene-fit-v3 -->'
+          end='<!-- /pb-cap-scene-fit-v3 -->'
           if start in s:
             a=s.index(start); b=s.index(end,a)+len(end)
             s=s[:a]+s[b:]
-          block='''<!-- pb-cap-scene-fit-v2 -->
-          <style id="pb-cap-scene-fit-v2">
+          block='''<!-- pb-cap-scene-fit-v3 -->
+          <style id="pb-cap-scene-fit-v3">
           @media(max-width:800px){
             /* O mesmo arquivo de imagem cobre toda a parede, sem faixas artificiais */
             #pomodoro .pb-room[data-pb-cap-test="1"]{
@@ -40,22 +40,25 @@ jobs:
               opacity:0!important;
               display:none!important;
             }
+            /* Eliminar camadas de névoa e centralizar a arte sobre o tapete */
+            #pomodoro .pb-room[data-pb-cap-test="1"]::after{opacity:0!important;background:none!important;pointer-events:none!important}
+            #pomodoro .pb-room[data-pb-cap-test="1"] .pb-room-art{filter:none!important}
             /* Reduzir a arte do personagem e colocá-la sobre o tapete */
             #pomodoro .pb-room[data-pb-cap-test="1"] .pb-room-art{
-              width:min(76%,330px)!important;
-              max-width:330px!important;
+              width:min(69%,300px)!important;
+              max-width:300px!important;
               height:100%!important;
               max-height:100%!important;
               object-fit:contain!important;
               object-position:center bottom!important;
               justify-self:center!important;
               align-self:end!important;
-              transform:translateY(-5%)!important;
+              transform:translate(0,-10%)!important;
               transform-origin:center bottom!important;
             }
           }
           </style>
-          <!-- /pb-cap-scene-fit-v2 -->'''
+          <!-- /pb-cap-scene-fit-v3 -->'''
           assert '</body>' in s
           s=s.replace('</body>',block+'\n</body>',1)
           p.write_text(s,encoding='utf-8')
