@@ -1,0 +1,31 @@
+name: Corrigir tela Foco mobile da capivara
+on:
+  push:
+    paths:
+      - '.github/workflows/corrigir-foco-mobile.yml'
+permissions:
+  contents: write
+jobs:
+  corrigir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Corrigir encaixe do cenário e remover faixa branca
+        shell: python
+        run: |
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          marker='pb-mobile-focus-cleanup-20261127'
+          if marker not in s:
+            css="<style id=\"pb-mobile-focus-cleanup-20261127\">\n@media (max-width:800px) {\n  html, body { overflow-x:hidden!important; }\n  :is(#pomodoro,#games) { overflow:hidden!important; background:#ffdab7!important; }\n  :is(#pomodoro,#games) .pb-room[data-pb-cap-test=\"1\"] {\n    background:#ffdab7!important;\n    background-image:none!important;\n    overflow:hidden!important;\n    border:0!important;\n    border-radius:0!important;\n    box-shadow:none!important;\n    margin:0!important;\n    padding-bottom:0!important;\n    min-height:0!important;\n    height:calc(100dvh - 168px - 112px)!important;\n    max-height:calc(100dvh - 168px - 112px)!important;\n  }\n  :is(#pomodoro,#games) .pb-room[data-pb-cap-test=\"1\"]::before {\n    content:\"\"!important;\n    position:absolute!important;\n    inset:0!important;\n    background-color:#ffdab7!important;\n    background-image:var(--room-mobile,var(--room))!important;\n    background-size:cover!important;\n    background-position:center center!important;\n    background-repeat:no-repeat!important;\n    mask-image:none!important;\n    opacity:1!important;\n    z-index:-1!important;\n  }\n  :is(#pomodoro,#games) .pb-room[data-pb-cap-test=\"1\"] .pb-room-art {\n    margin-top:0!important;\n    margin-bottom:0!important;\n    max-height:100%!important;\n    object-fit:contain!important;\n  }\n  :is(#pomodoro,#games) .pb-room[data-pb-cap-test=\"1\"] .pb-room-panel[hidden] {\n    display:none!important;\n  }\n}\n</style>"
+            if '</body>' not in s:
+              raise RuntimeError('HTML sem body final')
+            s=s.replace('</body>',css+'</body>',1)
+            Path('index.html').write_text(s,encoding='utf-8')
+      - name: Publicar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Corrigir fundo e faixa branca no Foco mobile da capivara"
+          git push
