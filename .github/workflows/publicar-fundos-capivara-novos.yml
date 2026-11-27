@@ -1,0 +1,48 @@
+name: Publicar quatro fundos novos da capivara
+on:
+  push:
+    paths:
+      - '.github/workflows/publicar-fundos-capivara-novos.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conferir imagens e atualizar referências mobile
+        shell: python
+        run: |
+          from pathlib import Path
+          pairs = {
+            'room-mobile-capivara-estudar.webp': 'capivara-estudo-mobile.png',
+            'room-mobile-capivara-leitura.webp': 'capivara-leitura-mobile.png',
+            'room-mobile-capivara-jogos.webp': 'capivara-jogos-mobile.png',
+            'room-mobile-capivara-trabalhar.webp': 'capivara-trabalho-mobile.png',
+          }
+          html=Path('index.html')
+          s=html.read_text(encoding='utf-8')
+          for old,new in pairs.items():
+              assert Path(new).is_file(), f'Imagem ausente: {new}'
+              count=s.count(old)
+              print(f'{old}: {count} referências')
+              assert count>0 or new in s, f'Referência não encontrada: {old}'
+              s=s.replace(old,new)
+          html.write_text(s,encoding='utf-8')
+          # Manter cache PWA atualizado para as novas imagens.
+          sw=Path('sw.js')
+          if sw.exists():
+              t=sw.read_text(encoding='utf-8')
+              for old,new in pairs.items():
+                  t=t.replace(old,new)
+              sw.write_text(t,encoding='utf-8')
+      - name: Publicar no GitHub Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Usar quatro novos cenários da capivara no celular"
+            git push
+          fi
