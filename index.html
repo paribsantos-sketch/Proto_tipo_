@@ -1262,4 +1262,44 @@ body:has(:is(#home,#profile,#agenda,#settings,#analytics,#friends,#goals).active
     object-position: center bottom !important;
   }
 }
+</style><style id="pb-mobile-focus-cleanup-20261127">
+@media (max-width:800px) {
+  html, body { overflow-x:hidden!important; }
+  :is(#pomodoro,#games) { overflow:hidden!important; background:#ffdab7!important; }
+  :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"] {
+    background:#ffdab7!important;
+    background-image:none!important;
+    overflow:hidden!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    margin:0!important;
+    padding-bottom:0!important;
+    min-height:0!important;
+    height:calc(100dvh - 168px - 112px)!important;
+    max-height:calc(100dvh - 168px - 112px)!important;
+  }
+  :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"]::before {
+    content:""!important;
+    position:absolute!important;
+    inset:0!important;
+    background-color:#ffdab7!important;
+    background-image:var(--room-mobile,var(--room))!important;
+    background-size:cover!important;
+    background-position:center center!important;
+    background-repeat:no-repeat!important;
+    mask-image:none!important;
+    opacity:1!important;
+    z-index:-1!important;
+  }
+  :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"] .pb-room-art {
+    margin-top:0!important;
+    margin-bottom:0!important;
+    max-height:100%!important;
+    object-fit:contain!important;
+  }
+  :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"] .pb-room-panel[hidden] {
+    display:none!important;
+  }
+}
 </style></body></html>
