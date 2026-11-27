@@ -1463,4 +1463,29 @@ setInterval(sync,350);sync();
     z-index:1!important;
   }
 }
+</style><style id="pb-cap-side-wall-match-v5-20261127">
+@media(max-width:800px){
+  /* A faixa central da parede e a referencia; corrigir so as laterais. */
+  :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"]::after{
+    display:block!important;
+    content:""!important;
+    position:absolute!important;
+    left:0!important;right:0!important;top:0!important;
+    height:clamp(175px,26dvh,245px)!important;
+    background:linear-gradient(to right,
+      #FED6B2 0%,#FED6B2 27%,
+      rgba(254,214,178,.5) 30%,
+      transparent 34%,transparent 66%,
+      rgba(254,214,178,.5) 70%,
+      #FED6B2 73%,#FED6B2 100%)!important;
+    -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 72%,transparent 100%)!important;
+    mask-image:linear-gradient(to bottom,#000 0%,#000 72%,transparent 100%)!important;
+    pointer-events:none!important;
+    z-index:0!important;
+  }
+  :is(#pomodoro,#games) .pb-room[data-pb-cap-test="1"] > *{
+    position:relative!important;
+    z-index:1!important;
+  }
+}
 </style></body></html>
