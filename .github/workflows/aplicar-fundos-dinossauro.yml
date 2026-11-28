@@ -1,0 +1,83 @@
+name: Aplicar quatro fundos mobile do dinossauro
+on:
+  push:
+    paths:
+      - '.github/workflows/aplicar-fundos-dinossauro.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Configurar cenarios do dinossauro
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          images = {
+              'estudar': 'dinossauro-modo-estudos.png',
+              'leitura': 'dinossauro-modo-leitura.png',
+              'trabalhar': 'dinossauro-modo-trabalho.png',
+              'jogos': 'dinossauro-modo-jogos.png',
+          }
+          for f in images.values():
+              p = Path(f)
+              assert p.is_file() and p.stat().st_size > 1000, f'Fundo ausente: {f}'
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          for mode, new in images.items():
+              old = 'room-mobile-dinossauro-' + mode + '.webp'
+              assert old in s or new in s, f'Referencia nao encontrada: {mode}'
+              s = s.replace(old, new)
+          marker = "r.room.dataset.pbCapTest=p==='capivara'?'1':'0';"
+          if marker in s:
+              s = s.replace(marker, "r.room.dataset.pbCapTest=(p==='capivara'||p==='dinossauro')?'1':'0';r.room.dataset.pbPet=p;", 1)
+          else:
+              assert "r.room.dataset.pbPet=p;" in s, 'Marcador do mascote ausente'
+          css = """
+          <style id="pb-dino-mobile-scene-20261127">
+          @media(max-width:800px){
+            :is(#pomodoro,#games) .pb-room[data-pb-pet="dinossauro"]{
+              background-image:var(--room-mobile,var(--room))!important;
+              background-size:100% 100%!important;
+              background-position:center!important;
+              background-repeat:no-repeat!important;
+            }
+            :is(#pomodoro,#games) .pb-room[data-pb-pet="dinossauro"]::before,
+            :is(#pomodoro,#games) .pb-room[data-pb-pet="dinossauro"]::after{
+              display:none!important;content:none!important;opacity:0!important;
+            }
+            :is(#pomodoro,#games) .pb-room[data-pb-pet="dinossauro"] .pb-room-art{
+              width:min(69%,300px)!important;max-width:300px!important;
+              height:100%!important;object-fit:contain!important;
+              object-position:center bottom!important;justify-self:center!important;
+              align-self:end!important;transform:translate(0,-10%)!important;
+            }
+          }
+          </style>
+          """
+          if 'pb-dino-mobile-scene-20261127' not in s:
+              assert '</body></html>' in s
+              s = s.replace('</body></html>',css+'</body></html>',1)
+          p.write_text(s,encoding='utf-8')
+          sw = Path('sw.js')
+          if sw.exists():
+              t=sw.read_text(encoding='utf-8')
+              for mode,new in images.items():
+                  t=t.replace('room-mobile-dinossauro-'+mode+'.webp',new)
+              t=re.sub(r"(const\s+[^=\n]*CACHE[^=\n]*=\s*['\"])([^'\"]+)",lambda m:m.group(1)+m.group(2)+'-dino-v1' if 'dino-v1' not in m.group(2) else m.group(0),t,count=1)
+              sw.write_text(t,encoding='utf-8')
+          print('Fundos do dinossauro configurados')
+      - name: Publicar alteracoes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Aplicar quatro fundos do dinossauro no Pomodoro mobile"
+            git push
+          fi
