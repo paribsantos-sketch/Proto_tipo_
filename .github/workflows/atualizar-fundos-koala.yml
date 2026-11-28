@@ -1,0 +1,94 @@
+name: Atualizar quatro fundos mobile do koala
+on:
+  push:
+    paths:
+      - '.github/workflows/atualizar-fundos-koala.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Substituir somente fundos do koala
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          images = {
+              'estudar': 'koala-estudo-mobile.png',
+              'leitura': 'koala-leitura-mobile.png',
+              'jogos': 'koala-jogos-mobile.png',
+              'trabalhar': 'koala-trabalho-mobile.png',
+          }
+          for filename in images.values():
+              p=Path(filename)
+              assert p.is_file() and p.stat().st_size>1000, f'Imagem ausente ou vazia: {filename}'
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          changed=[]
+          for mode,filename in images.items():
+              # Substituir referências antigas somente quando o nome contém koala e o modo.
+              patterns=[
+                  rf'room-mobile-koala-{mode}\\.(?:png|webp|jpg|jpeg)',
+                  rf'koala-{mode}-mobile\\.(?:webp|jpg|jpeg)',
+              ]
+              if mode=='trabalhar':
+                  patterns += [r'room-mobile-koala-trabalho\\.(?:png|webp|jpg|jpeg)']
+              if mode=='estudar':
+                  patterns += [r'room-mobile-koala-estudo\\.(?:png|webp|jpg|jpeg)']
+              for pattern in patterns:
+                  s,n=re.subn(pattern,filename,s,flags=re.I)
+                  if n: changed.append((mode,n))
+          # Garantir o mapa de cenas mobile do koala mesmo que a versão anterior
+          # tenha nomes inesperados, sem alterar outros mascotes.
+          marker='pb-koala-mobile-scenes-v1'
+          if marker not in s:
+              addon='''<script id="pb-koala-mobile-scenes-v1">
+          (function(){
+            const files={estudar:'koala-estudo-mobile.png',leitura:'koala-leitura-mobile.png',trabalhar:'koala-trabalho-mobile.png',jogos:'koala-jogos-mobile.png'};
+            function sync(){
+              if(!matchMedia('(max-width: 800px)').matches)return;
+              const room=document.querySelector('#pomodoro .pb-room, #games .pb-room');
+              if(!room)return;
+              const pet=(localStorage.getItem('pombuddy_mascote')||'').toLowerCase();
+              const current=room.style.getPropertyValue('--room-mobile')||getComputedStyle(room).getPropertyValue('--room-mobile');
+              const isKoala=/koala/i.test(current)||/koala/.test(pet);
+              if(!isKoala)return;
+              let mode=(document.querySelector('#pomodoro select')?.value||'').toLowerCase();
+              if(!files[mode]){
+                const txt=(document.querySelector('#pomodoro .pb-mode-select, #pomodoro .mode-select')?.textContent||'').toLowerCase();
+                mode=/leit/.test(txt)?'leitura':/jog/.test(txt)?'jogos':/trabal/.test(txt)?'trabalhar':'estudar';
+              }
+              room.style.setProperty('--room-mobile', 'url("'+files[mode]+'")');
+            }
+            new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['style','class','data-mode']});
+            document.addEventListener('change',sync);
+            document.addEventListener('click',()=>requestAnimationFrame(sync));
+            sync();
+          })();
+          </script>'''
+              # Evitar script de observação invasivo: usar apenas troca textual comprovada.
+          if not changed:
+              raise RuntimeError('Não encontrei referências antigas do koala; nenhuma alteração foi publicada')
+          p.write_text(s,encoding='utf-8')
+          sw=Path('sw.js')
+          if sw.exists():
+              t=sw.read_text(encoding='utf-8')
+              for mode,filename in images.items():
+                  t=re.sub(rf'room-mobile-koala-{mode}\\.(?:png|webp|jpg|jpeg)',filename,t,flags=re.I)
+              t=re.sub(r'(const\\s+[^=\\n]*CACHE[^=\\n]*=\\s*[\\x27\\x22])([^\\x27\\x22]+)',lambda m:m.group(1)+m.group(2)+'-koala-v1' if 'koala-v1' not in m.group(2) else m.group(0),t,count=1)
+              sw.write_text(t,encoding='utf-8')
+          print('Atualizações:',changed)
+      - name: Commitar alterações
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html sw.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Atualizar quatro fundos mobile do koala"
+            git push
+          fi
